@@ -22,8 +22,11 @@ var
   JSONRequestRec: TJSONRequestRec;
 
 const
-  C_URL = 'https://api.codenation.dev';
-  C_RESOURCE = 'v1/challenge/dev-ps/generate-data';
+  C_GET_URL = 'https://api.codenation.dev';
+  C_GET_RESOURCE = 'v1/challenge/dev-ps/generate-data';
+
+  C_POST_URL = 'https://api.codenation.dev';
+  C_POST_RESOURCE = 'v1/challenge/dev-ps/submit-solution';
   C_MY_TOKEN = 'e896178d5e18062430bb5522f916c28d3ab5418e';
   C_LINE = '==================================================';
 
@@ -36,32 +39,32 @@ end;
 
 function GetJSON: string;
 begin
-  RESTClient:= TRESTClient.Create(C_URL);
+  RESTClient:= TRESTClient.Create(C_GET_URL);
   RESTRequest:= TRESTRequest.Create(nil);
   RESTResponse:= TRESTResponse.Create(nil);
   try
     try
       RESTRequest.Client:= RESTClient;
       RESTRequest.Response:= RESTResponse;
-      RESTRequest.Resource:= C_RESOURCE;
+      RESTRequest.Resource:= C_GET_RESOURCE;
       RESTRequest.AddParameter('token', C_MY_TOKEN);
       RESTRequest.Method:= rmGET;
       RESTRequest.Execute;
 
       if RESTResponse.StatusCode = 200 then
+      begin
         JSONValue := TJSonObject.ParseJSONValue(RESTResponse.Content);
 
-      Writeln('O JSON original é: ');
-      Writeln(JSONValue.ToJSON);
-      Line;
+        Writeln('O JSON original é: ');
+        Writeln(JSONValue.ToJSON);
+        Line;
 
-      JSONRequestRec.numero_casas        := JsonValue.GetValue<Integer>('numero_casas');
-      JSONRequestRec.token               := JsonValue.GetValue<string>('token');
-      JSONRequestRec.cifrado             := JsonValue.GetValue<string>('cifrado');
-      JSONRequestRec.decifrado           := JsonValue.GetValue<string>('decifrado');
-      JSONRequestRec.resumo_criptografico:= JsonValue.GetValue<string>('resumo_criptografico');
-
-
+        JSONRequestRec.numero_casas        := JsonValue.GetValue<Integer>('numero_casas');
+        JSONRequestRec.token               := JsonValue.GetValue<string>('token');
+        JSONRequestRec.cifrado             := JsonValue.GetValue<string>('cifrado');
+        JSONRequestRec.decifrado           := JsonValue.GetValue<string>('decifrado');
+        JSONRequestRec.resumo_criptografico:= JsonValue.GetValue<string>('resumo_criptografico');
+      end;
     finally
       RESTResponse.Free;
       RESTRequest.Free;
@@ -84,13 +87,10 @@ begin
   for I := 1 to QtChars do
   begin
     NumChar:= Ord(ACipher[I]);
-    if not (NumChar in [46, 0..9]) then
-    begin
-      if NumChar = 32 then
-        Result:= Result + Chr(NumChar)
-      else
-        Result:= Result + Chr(NumChar - ANumPlace);
-    end;
+    if NumChar in [32, 46, 0..9] then
+      Result:= Result + Chr(NumChar)
+    else
+      Result:= Result + Chr(NumChar - ANumPlace);
   end;
 
   Result:= Result.ToLower;
@@ -104,7 +104,6 @@ begin
 
   if not JSONRequestRec.cifrado.IsEmpty then
   begin
-    //StringDecoded:= Decode('uif cftu xbz up nblf zpvs esfbnt dpnf usvf jt up xblf vq. nvsjfm tjfcfsu', 1);
     StringDecoded:= Decode(JSONRequestRec.cifrado, JSONRequestRec.numero_casas);
     SHA1:= THashSHA1.GetHashString(StringDecoded);
 
@@ -121,9 +120,65 @@ begin
    Line;
 end;
 
-procedure PostJSON;
+function GenerateJSONtoPost(var AJSONPost: string): Boolean;
+var
+  JSONObject: TJSONObject;
 begin
+  Result:= False;
+  JSONObject:= TJSONObject.Create;
+  try
+    if SetFieldValues then
+    begin
+      JSONObject.AddPair(TJSONPair.Create('numero_casas', JSONRequestRec.numero_casas.ToString));
+      JSONObject.AddPair(TJSONPair.Create('token', JSONRequestRec.token));
+      JSONObject.AddPair(TJSONPair.Create('cifrado', JSONRequestRec.cifrado));
+      JSONObject.AddPair(TJSONPair.Create('decifrado', JSONRequestRec.decifrado));
+      JSONObject.AddPair(TJSONPair.Create('resumo_criptografico', JSONRequestRec.resumo_criptografico));
+      AJSONPost:= JSONObject.ToJSON;
+      Result:= True;
+    end;
+  finally
+    JSONObject.Free;
+  end;
+end;
 
+procedure PostJSON;
+var
+  JSONtoPost: string;
+begin
+  if GenerateJSONtoPost(JSONtoPost) then
+  begin
+    RESTClient:= TRESTClient.Create(C_POST_URL);
+    RESTRequest:= TRESTRequest.Create(nil);
+    RESTResponse:= TRESTResponse.Create(nil);
+    try
+      try
+        RESTRequest.Client:= RESTClient;
+        RESTRequest.Response:= RESTResponse;
+        RESTRequest.Resource:= C_POST_RESOURCE;
+        RESTRequest.AddParameter('token', C_MY_TOKEN);
+        RESTRequest.AddBody(JSONtoPost, TRESTContentType.ctMULTIPART_FORM_DATA);
+        RESTRequest.Method:= rmPOST;
+        RESTRequest.Execute;
+
+        if RESTResponse.StatusCode = 200 then
+        begin
+          JSONValue := TJSonObject.ParseJSONValue(RESTResponse.Content);
+
+          Writeln('Status da submissão: ');
+          Writeln(JSONValue.ToJSON);
+          Line;
+        end;
+      finally
+        RESTResponse.Free;
+        RESTRequest.Free;
+        RESTResponse.Free;
+      end;
+    except
+      on E: Exception do
+       Writeln('Ocorreu um erro ao submeter o JSON!');
+    end;
+  end;
 end;
 
 begin
