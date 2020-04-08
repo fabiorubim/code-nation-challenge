@@ -1,0 +1,55 @@
+{
+	"info": {
+		"_postman_id": "9f36955e-5e30-438e-a99e-8e6136676ebf",
+		"name": "DevNation",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "https://api.codenation.dev/v1/challenge/dev-ps/submit-solution?token=e896178d5e18062430bb5522f916c28d3ab5418e",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "answer",
+						"value": "",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "answer",
+							"type": "file",
+							"src": "/C:/Users/fabio/Desktop/CodenationDev/Win32/Debug/answer.json"
+						}
+					]
+				},
+				"url": {
+					"raw": "https://api.codenation.dev/v1/challenge/dev-ps/submit-solution?token=e896178d5e18062430bb5522f916c28d3ab5418e",
+					"protocol": "https",
+					"host": [
+						"api",
+						"codenation",
+						"dev"
+					],
+					"path": [
+						"v1",
+						"challenge",
+						"dev-ps",
+						"submit-solution"
+					],
+					"query": [
+						{
+							"key": "token",
+							"value": "e896178d5e18062430bb5522f916c28d3ab5418e"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"protocolProfileBehavior": {}
+}
